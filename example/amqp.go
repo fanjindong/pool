@@ -26,7 +26,7 @@ func Init() {
 	}
 
 	//factory 创建连接的方法
-	factory := func() (interface{}, error) { return DramatiqConn.Channel() }
+	factory := func() (interface{}, error) { return Conn.Channel() }
 	//close 关闭连接的方法
 	close := func(v interface{}) error { return v.(*amqp.Channel).Close() }
 
@@ -46,7 +46,9 @@ func Init() {
 	}
 	//从连接池中取得一个连接
 	v, err := ChannelPool.Get()
-
+	if err != nil {
+		fmt.Println("err=", err)
+	}
 	//将连接放回连接池中
 	ChannelPool.Put(v)
 
@@ -55,6 +57,7 @@ func Init() {
 
 	//查看当前连接中的数量
 	current := ChannelPool.Len()
+	fmt.Println(current)
 }
 
 // Close is ...
