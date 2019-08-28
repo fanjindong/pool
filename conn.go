@@ -1,34 +1,34 @@
 package pool
 
 import (
-	"net"
 	"sync/atomic"
 	"time"
 )
 
 var noDeadline = time.Time{}
 
+// Conn is struct encapsulating cn
 type Conn struct {
-	conn   interface{}
+	// cn is user's connection object
+	cn     interface{}
 	usedAt atomic.Value
 }
 
-func NewConn(conn interface{}) *Conn {
-	cn := &Conn{
-		conn: conn,
+// NewConn is a new Conn
+func NewConn(cn interface{}) *Conn {
+	conn := &Conn{
+		cn: cn,
 	}
-	cn.SetUsedAt(time.Now())
-	return cn
+	conn.SetUsedAt(time.Now())
+	return conn
 }
 
-func (cn *Conn) UsedAt() time.Time {
-	return cn.usedAt.Load().(time.Time)
+// UsedAt is return the conn last used time
+func (conn *Conn) UsedAt() time.Time {
+	return conn.usedAt.Load().(time.Time)
 }
 
-func (cn *Conn) SetUsedAt(tm time.Time) {
-	cn.usedAt.Store(tm)
-}
-
-func (cn *Conn) SetNetConn(conn net.Conn) {
-	cn.conn = conn
+// SetUsedAt is set the conn last used time
+func (conn *Conn) SetUsedAt(tm time.Time) {
+	conn.usedAt.Store(tm)
 }

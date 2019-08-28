@@ -1,66 +1,51 @@
-package example
+package main
 
 import (
 	"fmt"
+	"pool"
 	"time"
-
-	"github.com/fanjindong/pool"
 
 	"github.com/streadway/amqp"
 )
 
-//Conn is ...
-var Conn *amqp.Connection
-
-// ChannelPool is ...
-var ChannelPool pool.Pool
-
-var err error
-
-// Init is ...
-func Init() {
-
-	Conn, err = amqp.Dial("amqp://root:password@127.0.0.1:5672/")
+func main() {
+	// Conn, err := amqp.Dial("amqp://uki:Neoclub2018@192.168.3.3:5672/")
+	Conn, err := amqp.Dial("amqp://root:password@127.0.0.1:5672/")
 	if err != nil {
 		panic("Failed to connect to RabbitMQ")
 	}
-
 	//factory 创建连接的方法
 	factory := func() (interface{}, error) { return Conn.Channel() }
 	//close 关闭连接的方法
 	close := func(v interface{}) error { return v.(*amqp.Channel).Close() }
 
-	//创建一个连接池： 初始化2，最大连接30
-	poolConfig := &pool.Config{
-		InitialCap: 2,
-		MaxCap:     20,
-		Factory:    factory,
-		Close:      close,
-		//Ping:       ping,
-		//连接最大空闲时间，超过该时间的连接 将会关闭，可避免空闲时连接EOF，自动失效的问题
-		IdleTimeout: 10 * time.Second,
+	//创建一个连接池： 最小空闲连接数2，最大连接10
+	opt := &pool.Options{
+		MinIdleConns:       2,
+		PoolSize:           10,
+		Dialer:             factory,
+		OnClose:            close,
+		PoolTimeout:        10 * time.Second,
+		IdleTimeout:        10 * time.Second,
+		IdleCheckFrequency: 10 * time.Second,
 	}
-	ChannelPool, err = pool.NewChannelPool(poolConfig)
+
+	p, err := pool.NewConnPool(opt)
 	if err != nil {
 		fmt.Println("err=", err)
 	}
 	//从连接池中取得一个连接
-	v, err := ChannelPool.Get()
+	cn, err := p.Get()
 	if err != nil {
 		fmt.Println("err=", err)
 	}
-	//将连接放回连接池中
-	ChannelPool.Put(v)
-
-	//释放连接池中的所有连接
-	ChannelPool.Release()
-
-	//查看当前连接中的数量
-	current := ChannelPool.Len()
-	fmt.Println(current)
-}
-
-// Close is ...
-func Close() {
-	Conn.Close()
+	fmt.Println("connPool.idleLength:", p.IdleLen())
+	p.Put(cn)
+	fmt.Println("connPool.idleLength:", p.IdleLen())
+	time.Sleep(20 * time.Second)
+	fmt.Println("connPool.idleLength:", p.IdleLen())
+	opt.MinIdleConns = 1
+	time.Sleep(20 * time.Second)
+	fmt.Println("connPool.idleLength:", p.IdleLen())
+	p.Close()
 }
