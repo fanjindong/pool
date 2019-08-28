@@ -33,6 +33,6 @@ func (cn *Conn) SetUsedAt(tm time.Time) {
 	cn.usedAt.Store(tm)
 }
 
-func (cn *Conn) SetNetConn(netConn net.Conn) {
+func (cn *Conn) SetNetConn(conn net.Conn) {
 	cn.conn = conn
 }
