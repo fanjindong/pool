@@ -64,7 +64,6 @@ type Options struct {
 	//连接池中拥有的最小连接数
 	MinIdleConns int
 	//连接最大空闲时间，超过该事件则将失效
-	MaxConnAge         time.Duration
 	PoolTimeout        time.Duration
 	IdleTimeout        time.Duration
 	IdleCheckFrequency time.Duration
@@ -159,8 +158,6 @@ func (p *ConnPool) _NewConn(pooled bool) (*Conn, error) {
 	if pooled {
 		if p.poolSize < p.opt.PoolSize {
 			p.poolSize++
-		} else {
-			cn.pooled = false
 		}
 	}
 	p.connsMu.Unlock()
@@ -186,7 +183,6 @@ func (p *ConnPool) newConn(pooled bool) (*Conn, error) {
 	}
 
 	cn := NewConn(netConn)
-	cn.pooled = pooled
 	return cn, nil
 }
 func (p *ConnPool) tryDial() {
@@ -221,7 +217,7 @@ func (p *ConnPool) getLastDialError() error {
 }
 
 // Get returns existed connection from the pool or creates a new one.
-func (p *ConnPool) Get() (*Conn, error) {
+func (p *ConnPool) Get() (interface{}, error) {
 	if p.closed() {
 		return nil, ErrClosed
 	}
@@ -246,7 +242,7 @@ func (p *ConnPool) Get() (*Conn, error) {
 		}
 
 		atomic.AddUint32(&p.stats.Hits, 1)
-		return cn, nil
+		return cn.conn, nil
 	}
 
 	atomic.AddUint32(&p.stats.Misses, 1)
@@ -304,12 +300,12 @@ func (p *ConnPool) popIdle() *Conn {
 	return cn
 }
 
-func (p *ConnPool) Put(cn *Conn) {
-	if !cn.pooled {
-		p.Remove(cn, nil)
-		return
-	}
-
+func (p *ConnPool) Put(conn interface{}) {
+	// if !cn.pooled {
+	// 	p.Remove(cn, nil)
+	// 	return
+	// }
+	cn := NewConn(conn)
 	p.connsMu.Lock()
 	p.idleConns = append(p.idleConns, cn)
 	p.idleConnsLen++
@@ -333,10 +329,10 @@ func (p *ConnPool) removeConn(cn *Conn) {
 	for i, c := range p.conns {
 		if c == cn {
 			p.conns = append(p.conns[:i], p.conns[i+1:]...)
-			if cn.pooled {
-				p.poolSize--
-				p.checkMinIdleConns()
-			}
+			// if cn.pooled {
+			// 	p.poolSize--
+			// 	p.checkMinIdleConns()
+			// }
 			break
 		}
 	}
@@ -459,15 +455,12 @@ func (p *ConnPool) reaper(frequency time.Duration) {
 }
 
 func (p *ConnPool) isStaleConn(cn *Conn) bool {
-	if p.opt.IdleTimeout == 0 && p.opt.MaxConnAge == 0 {
+	if p.opt.IdleTimeout == 0 {
 		return false
 	}
 
 	now := time.Now()
 	if p.opt.IdleTimeout > 0 && now.Sub(cn.UsedAt()) >= p.opt.IdleTimeout {
-		return true
-	}
-	if p.opt.MaxConnAge > 0 && now.Sub(cn.createdAt) >= p.opt.MaxConnAge {
 		return true
 	}
 
