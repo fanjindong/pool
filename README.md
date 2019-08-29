@@ -9,11 +9,10 @@ Golang universal connection pool generator
 
 ### Feature
 
-1. 模板化连接池的创建
-2. 允许设置最大连接数量
-3. 允许设置最小空闲连接数
-4. 允许设置空闲连接的超时过期时间
-5. 允许设置时间间隔，清理过期的空闲连接
+1. Quickly and easily generate connection pool.
+2. Customize the maximum number of connections for this connection pool.
+3. Customize the minimum number of idle connections which is useful when establishing.
+4. The number of connection pools is automatically scaled between the maximum and minimum values.
 
 ### Install
 
