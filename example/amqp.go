@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"pool"
 	"time"
+
+	"github.com/fanjindong/pool"
 
 	"github.com/streadway/amqp"
 )
@@ -14,20 +15,13 @@ func main() {
 	if err != nil {
 		panic("Failed to connect to RabbitMQ")
 	}
-	//factory 创建连接的方法
-	factory := func() (interface{}, error) { return Conn.Channel() }
-	//close 关闭连接的方法
-	close := func(v interface{}) error { return v.(*amqp.Channel).Close() }
+	dialerf := func() (interface{}, error) { return Conn.Channel() }
+	closef := func(v interface{}) error { return v.(*amqp.Channel).Close() }
 
-	//创建一个连接池： 最小空闲连接数2，最大连接10
 	opt := &pool.Options{
-		MinIdleConns:       2,
-		PoolSize:           10,
-		Dialer:             factory,
-		OnClose:            close,
-		PoolTimeout:        10 * time.Second,
-		IdleTimeout:        10 * time.Second,
-		IdleCheckFrequency: 10 * time.Second,
+		PoolSize: 10,
+		Dialer:   dialerf,
+		OnClose:  closef,
 	}
 
 	p, err := pool.NewConnPool(opt)
