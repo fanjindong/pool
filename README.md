@@ -55,6 +55,11 @@ func main() {
 	if err != nil {
 		fmt.Println("err=", err)
 	}
+
+	ch = cn.(*amqp.Channel)
+
+	_ = channel.Publish() // do something
+
 	p.Put(cn)
 	p.Close()
 }
